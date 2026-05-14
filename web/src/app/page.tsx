@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import { getNationalTrend, getReservoirs } from "@/lib/reservoir";
+
+export const revalidate = 60;
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Hero } from "@/components/hero";

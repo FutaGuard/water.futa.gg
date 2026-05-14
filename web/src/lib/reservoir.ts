@@ -1,4 +1,3 @@
-import { cacheLife } from "next/cache";
 import type {
   NationalTrend,
   Reservoir,
@@ -10,6 +9,8 @@ import { metaFor } from "./reservoir-meta";
 
 const API_BASE = process.env.OPENDATA_API_BASE ?? "https://opendata.futa.gg";
 const USE_MOCK = process.env.USE_MOCK_DATA === "true";
+const RESERVOIRS_REVALIDATE_SECONDS = 60;
+const HISTORY_REVALIDATE_SECONDS = 60 * 60;
 
 function classify(percent: number): Reservoir["status"] {
   if (!Number.isFinite(percent)) return "unknown";
@@ -47,13 +48,17 @@ function mapUpstream(item: UpstreamReservoir): Reservoir {
   };
 }
 
-async function fetchUpstream<T>(path: string): Promise<T> {
+async function fetchUpstream<T>(
+  path: string,
+  revalidate: number,
+): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 6000);
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       headers: { Accept: "application/json" },
       signal: controller.signal,
+      next: { revalidate },
     });
     if (!res.ok) throw new Error(`Upstream ${res.status} on ${path}`);
     return (await res.json()) as T;
@@ -67,9 +72,6 @@ export async function getReservoirs(): Promise<{
   fetchedAt: string;
   source: "live" | "mock";
 }> {
-  "use cache";
-  cacheLife("minutes");
-
   const fetchedAt = new Date().toISOString();
 
   if (USE_MOCK) {
@@ -77,7 +79,10 @@ export async function getReservoirs(): Promise<{
   }
 
   try {
-    const raw = await fetchUpstream<UpstreamReservoir[]>("/reservoirs");
+    const raw = await fetchUpstream<UpstreamReservoir[]>(
+      "/reservoirs",
+      RESERVOIRS_REVALIDATE_SECONDS,
+    );
     const data = raw.map(mapUpstream);
     return { data, fetchedAt, source: "live" };
   } catch {
@@ -88,14 +93,12 @@ export async function getReservoirs(): Promise<{
 export async function getReservoirHistory(
   id: string,
 ): Promise<ReservoirHistory> {
-  "use cache";
-  cacheLife("hours");
-
   if (USE_MOCK) return getMockHistory(id);
 
   try {
     return await fetchUpstream<ReservoirHistory>(
       `/reservoirs/${encodeURIComponent(id)}/history`,
+      HISTORY_REVALIDATE_SECONDS,
     );
   } catch {
     return getMockHistory(id);
