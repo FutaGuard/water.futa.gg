@@ -31,6 +31,16 @@ export interface ReservoirHistory {
   points: ReservoirHistoryPoint[];
 }
 
+export interface TrendPoint {
+  date: string;
+  percentage: number;
+}
+
+export interface NationalTrend {
+  points: TrendPoint[];
+  contributors: number;
+}
+
 export interface UpstreamReservoir {
   id: number;
   name: string;

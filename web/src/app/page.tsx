@@ -1,11 +1,12 @@
 import { Suspense } from "react";
-import { getReservoirs } from "@/lib/reservoir";
+import { getNationalTrend, getReservoirs } from "@/lib/reservoir";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Hero } from "@/components/hero";
 import { StatOverview } from "@/components/stat-overview";
 import { RegionPulse } from "@/components/region-pulse";
 import { TopReservoirsChart } from "@/components/top-reservoirs-chart";
+import { TrendChart } from "@/components/trend-chart";
 import { ReservoirExplorer } from "@/components/reservoir-explorer";
 
 function DashboardSkeleton() {
@@ -29,12 +30,14 @@ function DashboardSkeleton() {
 
 async function Dashboard() {
   const { data, source } = await getReservoirs();
+  const trend = await getNationalTrend(data);
 
   return (
     <>
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 pb-10 pt-6">
         <Hero reservoirs={data} />
         <StatOverview reservoirs={data} />
+        <TrendChart trend={trend} />
         <RegionPulse reservoirs={data} />
         <TopReservoirsChart reservoirs={data} />
         <ReservoirExplorer reservoirs={data} />

@@ -1,5 +1,10 @@
 import { cacheLife } from "next/cache";
-import type { Reservoir, ReservoirHistory, UpstreamReservoir } from "./types";
+import type {
+  NationalTrend,
+  Reservoir,
+  ReservoirHistory,
+  UpstreamReservoir,
+} from "./types";
 import { getMockHistory, getMockReservoirs } from "./mock";
 import { metaFor } from "./reservoir-meta";
 
@@ -95,4 +100,65 @@ export async function getReservoirHistory(
   } catch {
     return getMockHistory(id);
   }
+}
+
+const TRENDS_TOP_N = 10;
+const TAIPEI_DATE = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Taipei",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function taipeiDate(iso: string): string {
+  return TAIPEI_DATE.format(new Date(iso));
+}
+
+export async function getNationalTrend(
+  reservoirs: Reservoir[],
+): Promise<NationalTrend> {
+  const targets = reservoirs
+    .filter((r) => r.hasStorage && r.fullCapacity > 0)
+    .sort((a, b) => b.fullCapacity - a.fullCapacity)
+    .slice(0, TRENDS_TOP_N);
+
+  if (targets.length === 0) {
+    return { points: [], contributors: 0 };
+  }
+
+  const histories = await Promise.all(
+    targets.map((r) => getReservoirHistory(r.id)),
+  );
+
+  const buckets = new Map<string, { storage: number; capacity: number }>();
+
+  histories.forEach((history, i) => {
+    const reservoir = targets[i];
+    const latestPerDate = new Map<string, { time: number; percentage: number }>();
+    for (const point of history.points) {
+      const t = new Date(point.observationTime).getTime();
+      if (!Number.isFinite(t) || !Number.isFinite(point.percentage)) continue;
+      const date = taipeiDate(point.observationTime);
+      const existing = latestPerDate.get(date);
+      if (!existing || t > existing.time) {
+        latestPerDate.set(date, { time: t, percentage: point.percentage });
+      }
+    }
+    for (const [date, { percentage }] of latestPerDate) {
+      const bucket = buckets.get(date) ?? { storage: 0, capacity: 0 };
+      bucket.storage += (percentage / 100) * reservoir.fullCapacity;
+      bucket.capacity += reservoir.fullCapacity;
+      buckets.set(date, bucket);
+    }
+  });
+
+  const points = Array.from(buckets.entries())
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([date, { storage, capacity }]) => ({
+      date,
+      percentage:
+        capacity > 0 ? Math.round((storage / capacity) * 1000) / 10 : 0,
+    }));
+
+  return { points, contributors: targets.length };
 }
