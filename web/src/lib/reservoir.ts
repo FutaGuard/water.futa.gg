@@ -4,13 +4,9 @@ import type {
   ReservoirHistory,
   UpstreamReservoir,
 } from "./types";
-import { getMockHistory, getMockReservoirs } from "./mock";
 import { metaFor } from "./reservoir-meta";
 
-const API_BASE = process.env.OPENDATA_API_BASE ?? "https://opendata.futa.gg";
-const USE_MOCK = process.env.USE_MOCK_DATA === "true";
-const RESERVOIRS_REVALIDATE_SECONDS = 60;
-const HISTORY_REVALIDATE_SECONDS = 60 * 60;
+export const TRENDS_TOP_N = 10;
 
 function classify(percent: number): Reservoir["status"] {
   if (!Number.isFinite(percent)) return "unknown";
@@ -20,7 +16,7 @@ function classify(percent: number): Reservoir["status"] {
   return "critical";
 }
 
-function mapUpstream(item: UpstreamReservoir): Reservoir {
+export function mapUpstream(item: UpstreamReservoir): Reservoir {
   const meta = metaFor(item.name);
   const hasStorage =
     item.capavailable != null &&
@@ -48,64 +44,13 @@ function mapUpstream(item: UpstreamReservoir): Reservoir {
   };
 }
 
-async function fetchUpstream<T>(
-  path: string,
-  revalidate: number,
-): Promise<T> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 6000);
-  try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      headers: { Accept: "application/json" },
-      signal: controller.signal,
-      next: { revalidate },
-    });
-    if (!res.ok) throw new Error(`Upstream ${res.status} on ${path}`);
-    return (await res.json()) as T;
-  } finally {
-    clearTimeout(timeout);
-  }
+export function pickTrendTargets(reservoirs: Reservoir[]): Reservoir[] {
+  return reservoirs
+    .filter((r) => r.hasStorage && r.fullCapacity > 0)
+    .sort((a, b) => b.fullCapacity - a.fullCapacity)
+    .slice(0, TRENDS_TOP_N);
 }
 
-export async function getReservoirs(): Promise<{
-  data: Reservoir[];
-  fetchedAt: string;
-  source: "live" | "mock";
-}> {
-  const fetchedAt = new Date().toISOString();
-
-  if (USE_MOCK) {
-    return { data: getMockReservoirs(), fetchedAt, source: "mock" };
-  }
-
-  try {
-    const raw = await fetchUpstream<UpstreamReservoir[]>(
-      "/reservoirs",
-      RESERVOIRS_REVALIDATE_SECONDS,
-    );
-    const data = raw.map(mapUpstream);
-    return { data, fetchedAt, source: "live" };
-  } catch {
-    return { data: getMockReservoirs(), fetchedAt, source: "mock" };
-  }
-}
-
-export async function getReservoirHistory(
-  id: string,
-): Promise<ReservoirHistory> {
-  if (USE_MOCK) return getMockHistory(id);
-
-  try {
-    return await fetchUpstream<ReservoirHistory>(
-      `/reservoirs/${encodeURIComponent(id)}/history`,
-      HISTORY_REVALIDATE_SECONDS,
-    );
-  } catch {
-    return getMockHistory(id);
-  }
-}
-
-const TRENDS_TOP_N = 10;
 const TAIPEI_DATE = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Taipei",
   year: "numeric",
@@ -117,28 +62,22 @@ function taipeiDate(iso: string): string {
   return TAIPEI_DATE.format(new Date(iso));
 }
 
-export async function getNationalTrend(
-  reservoirs: Reservoir[],
-): Promise<NationalTrend> {
-  const targets = reservoirs
-    .filter((r) => r.hasStorage && r.fullCapacity > 0)
-    .sort((a, b) => b.fullCapacity - a.fullCapacity)
-    .slice(0, TRENDS_TOP_N);
-
-  if (targets.length === 0) {
-    return { points: [], contributors: 0 };
-  }
-
-  const histories = await Promise.all(
-    targets.map((r) => getReservoirHistory(r.id)),
-  );
-
+export function aggregateNationalTrend(
+  targets: Reservoir[],
+  histories: PromiseSettledResult<ReservoirHistory>[],
+): NationalTrend {
   const buckets = new Map<string, { storage: number; capacity: number }>();
+  let contributors = 0;
 
-  histories.forEach((history, i) => {
+  histories.forEach((result, i) => {
+    if (result.status !== "fulfilled") return;
+    contributors += 1;
     const reservoir = targets[i];
-    const latestPerDate = new Map<string, { time: number; percentage: number }>();
-    for (const point of history.points) {
+    const latestPerDate = new Map<
+      string,
+      { time: number; percentage: number }
+    >();
+    for (const point of result.value.points) {
       const t = new Date(point.observationTime).getTime();
       if (!Number.isFinite(t) || !Number.isFinite(point.percentage)) continue;
       const date = taipeiDate(point.observationTime);
@@ -163,5 +102,5 @@ export async function getNationalTrend(
         capacity > 0 ? Math.round((storage / capacity) * 1000) / 10 : 0,
     }));
 
-  return { points, contributors: targets.length };
+  return { points, contributors };
 }
