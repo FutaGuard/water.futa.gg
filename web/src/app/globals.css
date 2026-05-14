@@ -1,0 +1,64 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: bumblebee --default;
+  root: ":root";
+}
+
+@theme inline {
+  --font-sans: var(--font-noto-sans-tc), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
+    Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(
+      1200px 600px at 8% -10%,
+      color-mix(in oklch, var(--color-warning) 30%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 500px at 105% 10%,
+      color-mix(in oklch, var(--color-primary) 22%, transparent),
+      transparent 55%
+    ),
+    var(--color-base-200);
+}
+
+.glass-card {
+  background: color-mix(in oklch, var(--color-base-100) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid color-mix(in oklch, var(--color-base-content) 8%, transparent);
+}
+
+.fade-mask {
+  mask-image: linear-gradient(to bottom, black 80%, transparent);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--color-base-300) 60%, transparent) 0%,
+    color-mix(in oklch, var(--color-base-200) 60%, transparent) 50%,
+    color-mix(in oklch, var(--color-base-300) 60%, transparent) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s linear infinite;
+}
