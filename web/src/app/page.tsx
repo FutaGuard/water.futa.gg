@@ -1,7 +1,5 @@
 import { Suspense } from "react";
 import { getNationalTrend, getReservoirs } from "@/lib/reservoir";
-
-export const revalidate = 60;
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Hero } from "@/components/hero";
@@ -10,6 +8,8 @@ import { RegionPulse } from "@/components/region-pulse";
 import { TopReservoirsChart } from "@/components/top-reservoirs-chart";
 import { TrendChart } from "@/components/trend-chart";
 import { ReservoirExplorer } from "@/components/reservoir-explorer";
+
+export const revalidate = 60;
 
 function DashboardSkeleton() {
   return (
@@ -31,7 +31,7 @@ function DashboardSkeleton() {
 }
 
 async function Dashboard() {
-  const { data, source } = await getReservoirs();
+  const { data } = await getReservoirs();
   const trend = await getNationalTrend(data);
 
   return (
@@ -44,7 +44,7 @@ async function Dashboard() {
         <TopReservoirsChart reservoirs={data} />
         <ReservoirExplorer reservoirs={data} />
       </main>
-      <SiteFooter source={source} />
+      <SiteFooter />
     </>
   );
 }
