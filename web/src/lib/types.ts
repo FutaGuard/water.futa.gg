@@ -20,17 +20,6 @@ export interface Reservoir {
   statisticPeriod: { start: string; end: string } | null;
 }
 
-export interface ReservoirHistoryPoint {
-  observationTime: string;
-  percentage: number;
-  waterLevel: number;
-}
-
-export interface ReservoirHistory {
-  id: string;
-  points: ReservoirHistoryPoint[];
-}
-
 export interface TrendPoint {
   date: string;
   percentage: number;

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import type {
   NationalTrend,
   Reservoir,
-  ReservoirHistory,
   UpstreamReservoir,
 } from "@/lib/types";
 import {
@@ -85,7 +84,7 @@ export function Dashboard() {
     (async () => {
       try {
         const raw = await fetchJson<UpstreamReservoir[]>(
-          "/reservoirs",
+          "/reservoirs/latest",
           controller.signal,
         );
         const data = raw.map(mapUpstream);
@@ -93,13 +92,21 @@ export function Dashboard() {
         setFetchedAt(new Date().toISOString());
 
         const targets = pickTrendTargets(data);
+        const end = new Date();
+        const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
         const histories = await Promise.allSettled(
-          targets.map((r) =>
-            fetchJson<ReservoirHistory>(
-              `/reservoirs/${encodeURIComponent(r.id)}/history`,
+          targets.map((r) => {
+            const params = new URLSearchParams({
+              name: r.name,
+              start: start.toISOString(),
+              end: end.toISOString(),
+              limit: "5000",
+            });
+            return fetchJson<UpstreamReservoir[]>(
+              `/reservoirs?${params.toString()}`,
               controller.signal,
-            ),
-          ),
+            );
+          }),
         );
         setTrend(aggregateNationalTrend(targets, histories));
       } catch (e: unknown) {

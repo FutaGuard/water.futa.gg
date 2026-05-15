@@ -1,9 +1,4 @@
-import type {
-  NationalTrend,
-  Reservoir,
-  ReservoirHistory,
-  UpstreamReservoir,
-} from "./types";
+import type { NationalTrend, Reservoir, UpstreamReservoir } from "./types";
 import { metaFor } from "./reservoir-meta";
 
 export const TRENDS_TOP_N = 10;
@@ -64,7 +59,7 @@ function taipeiDate(iso: string): string {
 
 export function aggregateNationalTrend(
   targets: Reservoir[],
-  histories: PromiseSettledResult<ReservoirHistory>[],
+  histories: PromiseSettledResult<UpstreamReservoir[]>[],
 ): NationalTrend {
   const buckets = new Map<string, { storage: number; capacity: number }>();
   let contributors = 0;
@@ -77,13 +72,15 @@ export function aggregateNationalTrend(
       string,
       { time: number; percentage: number }
     >();
-    for (const point of result.value.points) {
-      const t = new Date(point.observationTime).getTime();
-      if (!Number.isFinite(t) || !Number.isFinite(point.percentage)) continue;
-      const date = taipeiDate(point.observationTime);
+    for (const record of result.value) {
+      if (record.recordTime == null || record.currcapper == null) continue;
+      const t = new Date(record.recordTime).getTime();
+      const percentage = Number(record.currcapper);
+      if (!Number.isFinite(t) || !Number.isFinite(percentage)) continue;
+      const date = taipeiDate(record.recordTime);
       const existing = latestPerDate.get(date);
       if (!existing || t > existing.time) {
-        latestPerDate.set(date, { time: t, percentage: point.percentage });
+        latestPerDate.set(date, { time: t, percentage });
       }
     }
     for (const [date, { percentage }] of latestPerDate) {
