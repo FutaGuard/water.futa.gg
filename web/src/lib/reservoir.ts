@@ -39,6 +39,30 @@ export function mapUpstream(item: UpstreamReservoir): Reservoir {
   };
 }
 
+export function pickLatestValidByName(
+  records: UpstreamReservoir[],
+): UpstreamReservoir[] {
+  const latest = new Map<string, { time: number; record: UpstreamReservoir }>();
+  for (const r of records) {
+    if (
+      r.name == null ||
+      r.recordTime == null ||
+      r.capavailable == null ||
+      r.currcap == null ||
+      r.currcapper == null
+    ) {
+      continue;
+    }
+    const t = new Date(r.recordTime).getTime();
+    if (!Number.isFinite(t)) continue;
+    const existing = latest.get(r.name);
+    if (!existing || t > existing.time) {
+      latest.set(r.name, { time: t, record: r });
+    }
+  }
+  return Array.from(latest.values()).map((v) => v.record);
+}
+
 export function pickTrendTargets(reservoirs: Reservoir[]): Reservoir[] {
   return reservoirs
     .filter((r) => r.hasStorage && r.fullCapacity > 0)

@@ -9,6 +9,7 @@ import type {
 import {
   aggregateNationalTrend,
   mapUpstream,
+  pickLatestValidByName,
   pickTrendTargets,
 } from "@/lib/reservoir";
 import { SiteHeader } from "./site-header";
@@ -83,22 +84,28 @@ export function Dashboard() {
     const controller = new AbortController();
     (async () => {
       try {
+        const end = new Date();
+        const snapshotStart = new Date(end.getTime() - 3 * 24 * 60 * 60 * 1000);
+        const snapshotParams = new URLSearchParams({
+          start: snapshotStart.toISOString(),
+          end: end.toISOString(),
+          limit: "5000",
+        });
         const raw = await fetchJson<UpstreamReservoir[]>(
-          "/reservoirs/latest",
+          `/reservoirs?${snapshotParams.toString()}`,
           controller.signal,
         );
-        const data = raw.map(mapUpstream);
+        const data = pickLatestValidByName(raw).map(mapUpstream);
         setReservoirs(data);
         setFetchedAt(new Date().toISOString());
 
         const targets = pickTrendTargets(data);
-        const end = new Date();
-        const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const trendStart = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
         const histories = await Promise.allSettled(
           targets.map((r) => {
             const params = new URLSearchParams({
               name: r.name,
-              start: start.toISOString(),
+              start: trendStart.toISOString(),
               end: end.toISOString(),
               limit: "5000",
             });
