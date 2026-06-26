@@ -33,9 +33,9 @@ export interface NationalTrend {
 export interface UpstreamReservoir {
   id: number;
   name: string;
-  capavailable: number;
-  statisticTimeS: string;
-  statisticTimeE: string;
+  capavailable: number | null;
+  statisticTimeS: string | null;
+  statisticTimeE: string | null;
   rainFall: number | null;
   inFlow: number | null;
   outFlow: number | null;

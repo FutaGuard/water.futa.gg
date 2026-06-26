@@ -20,6 +20,7 @@ import { RegionPulse } from "./region-pulse";
 import { TopReservoirsChart } from "./top-reservoirs-chart";
 import { TrendChart } from "./trend-chart";
 import { ReservoirExplorer } from "./reservoir-explorer";
+import { ReservoirHistoryModal } from "./reservoir-history-modal";
 
 const API_BASE = "https://opendata.futa.gg";
 
@@ -79,6 +80,9 @@ export function Dashboard() {
   const [trend, setTrend] = useState<NationalTrend | null>(null);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedReservoir, setSelectedReservoir] = useState<Reservoir | null>(
+    null,
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -151,8 +155,15 @@ export function Dashboard() {
         {trend && <TrendChart trend={trend} />}
         <RegionPulse reservoirs={reservoirs} />
         <TopReservoirsChart reservoirs={reservoirs} />
-        <ReservoirExplorer reservoirs={reservoirs} />
+        <ReservoirExplorer
+          reservoirs={reservoirs}
+          onSelectReservoir={setSelectedReservoir}
+        />
       </main>
+      <ReservoirHistoryModal
+        reservoir={selectedReservoir}
+        onClose={() => setSelectedReservoir(null)}
+      />
       <SiteFooter />
     </>
   );

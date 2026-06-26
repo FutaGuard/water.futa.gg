@@ -18,6 +18,10 @@ export function mapUpstream(item: UpstreamReservoir): Reservoir {
     item.currcap != null &&
     item.currcapper != null;
   const percentage = hasStorage ? Number(item.currcapper) : NaN;
+  const statisticPeriod =
+    item.statisticTimeS != null && item.statisticTimeE != null
+      ? { start: item.statisticTimeS, end: item.statisticTimeE }
+      : null;
   return {
     id: String(item.id),
     name: item.name,
@@ -35,7 +39,7 @@ export function mapUpstream(item: UpstreamReservoir): Reservoir {
     status: hasStorage ? classify(percentage) : "unknown",
     hasStorage,
     observationTime: item.recordTime,
-    statisticPeriod: { start: item.statisticTimeS, end: item.statisticTimeE },
+    statisticPeriod,
   };
 }
 

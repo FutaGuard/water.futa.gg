@@ -55,11 +55,33 @@ function Gauge({
   );
 }
 
-export function ReservoirCard({ reservoir }: { reservoir: Reservoir }) {
+export function ReservoirCard({
+  reservoir,
+  onSelect,
+}: {
+  reservoir: Reservoir;
+  onSelect?: (reservoir: Reservoir) => void;
+}) {
   const c = statusColor(reservoir.status);
+  const clickable = onSelect != null;
   return (
     <article
-      className={`glass-card group relative overflow-hidden rounded-2xl p-5 ring-1 ${c.ring} transition-transform hover:-translate-y-0.5 hover:shadow-lg`}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      aria-label={clickable ? `${reservoir.name} 歷史資料` : undefined}
+      onClick={() => onSelect?.(reservoir)}
+      onKeyDown={(event) => {
+        if (!onSelect) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(reservoir);
+        }
+      }}
+      className={`glass-card group relative overflow-hidden rounded-2xl p-5 text-left ring-1 ${c.ring} transition-transform hover:-translate-y-0.5 hover:shadow-lg ${
+        clickable
+          ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/60"
+          : ""
+      }`}
     >
       <header className="flex items-start justify-between gap-3">
         <div>
@@ -75,6 +97,15 @@ export function ReservoirCard({ reservoir }: { reservoir: Reservoir }) {
             {reservoir.region} · {reservoir.county}
           </div>
         </div>
+        {clickable && (
+          <span
+            className="tooltip tooltip-left rounded-full text-base-content/50 transition-colors group-hover:text-primary"
+            data-tip="歷史圖表"
+            aria-hidden
+          >
+            ↗
+          </span>
+        )}
         {reservoir.hasStorage ? (
           <Gauge percent={reservoir.percentage} status={reservoir.status} />
         ) : (

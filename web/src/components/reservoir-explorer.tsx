@@ -22,7 +22,13 @@ const SORT_LABEL: Record<SortKey, string> = {
   "name-asc": "名稱（A → Z）",
 };
 
-export function ReservoirExplorer({ reservoirs }: { reservoirs: Reservoir[] }) {
+export function ReservoirExplorer({
+  reservoirs,
+  onSelectReservoir,
+}: {
+  reservoirs: Reservoir[];
+  onSelectReservoir?: (reservoir: Reservoir) => void;
+}) {
   const [region, setRegion] = useState<Region | "全部">("全部");
   const [sort, setSort] = useState<SortKey>("percent-asc");
   const [query, setQuery] = useState("");
@@ -118,7 +124,11 @@ export function ReservoirExplorer({ reservoirs }: { reservoirs: Reservoir[] }) {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((r) => (
-            <ReservoirCard key={r.id} reservoir={r} />
+            <ReservoirCard
+              key={r.id}
+              reservoir={r}
+              onSelect={onSelectReservoir}
+            />
           ))}
         </div>
       )}
