@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: bumblebee --default;
+  themes: bumblebee --default, night --prefersdark;
   root: ":root";
 }
 
@@ -18,6 +18,9 @@ body {
 
 body {
   font-family: var(--font-sans);
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
   background:
     radial-gradient(
       1200px 600px at 8% -10%,
@@ -30,6 +33,14 @@ body {
       transparent 55%
     ),
     var(--color-base-200);
+}
+
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme="night"] {
+  color-scheme: dark;
 }
 
 .glass-card {

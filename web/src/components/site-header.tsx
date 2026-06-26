@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "./theme-toggle";
 
 export function SiteHeader({ fetchedAt }: { fetchedAt: string }) {
   const fmt = new Intl.DateTimeFormat("zh-Hant", {
@@ -47,6 +48,7 @@ export function SiteHeader({ fetchedAt }: { fetchedAt: string }) {
             <span className="font-medium">資料更新</span>
             <span className="font-mono text-base-content/70">{fmt}</span>
           </div>
+          <ThemeToggle />
           <a
             href="https://github.com/FutaGuard/SunsetRollercoaster"
             target="_blank"
